@@ -20,7 +20,6 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
     dialog = tk.Toplevel(root)
     dialog.title(title if title is not None else "Clarify")
     dialog.resizable(False, False)
-    dialog.transient(root)
     dialog.protocol("WM_DELETE_WINDOW", lambda: _finish(dialog, result_holder, None, True))
 
     tk.Label(dialog, text=question, wraplength=420, justify="left", pady=8).grid(
@@ -56,9 +55,12 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
 
     dialog.update_idletasks()
     _center(dialog, root)
-    dialog.wait_visibility()
-    dialog.grab_set()
-    entry.focus_force()
+    try:
+        dialog.wait_visibility()
+        dialog.grab_set()
+        entry.focus_force()
+    except tk.TclError:
+        pass
 
     _maybe_autotest(dialog, entry, ok, _finish, result_holder)
 

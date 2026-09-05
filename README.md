@@ -27,6 +27,7 @@ clarify -p "Ship it?" -t "Deploy"
 | --- | --- | --- |
 | macOS | PyObjC / AppKit `NSAlert` + `NSTextView` accessory | yes |
 | Linux | tkinter `Toplevel` dialog | yes |
+| Windows | not supported | — |
 
 ## Install
 
@@ -38,7 +39,8 @@ uv run clarify -p "It works?"
 ```
 
 On macOS, `uv sync` installs PyObjC automatically (declared via platform marker).
-On Linux, tkinter ships with uv's Python build — no extra deps.
+On Linux, tkinter ships with uv's Python build (python-build-standalone) — no extra
+deps; with a system Python, tkinter comes from the OS package manager.
 
 ## Test hook
 

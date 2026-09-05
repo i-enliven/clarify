@@ -18,7 +18,7 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
     root.withdraw()  # no main window; only the dialog
 
     dialog = tk.Toplevel(root)
-    dialog.title(title or "Clarify")
+    dialog.title(title if title is not None else "Clarify")
     dialog.resizable(False, False)
     dialog.transient(root)
     dialog.protocol("WM_DELETE_WINDOW", lambda: _finish(dialog, result_holder, None, True))
@@ -51,12 +51,14 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
     )
     ok.grid(row=2, column=0, padx=(12, 4), pady=(4, 12), sticky="e")
     cancel.grid(row=2, column=1, padx=(4, 12), pady=(4, 12), sticky="w")
-    dialog.bind("<Return>", lambda _e: ok.invoke())
     dialog.bind("<Escape>", lambda _e: cancel.invoke())
+    entry.bind("<Return>", lambda _e: _return_ok(entry, ok))
 
     dialog.update_idletasks()
     _center(dialog, root)
+    dialog.wait_visibility()
     dialog.grab_set()
+    entry.focus_force()
 
     _maybe_autotest(dialog, entry, ok, _finish, result_holder)
 
@@ -67,8 +69,15 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
         root.destroy()
 
     result = result_holder["result"]
-    assert result is not None, "dialog closed without a result"
+    if result is None:
+        raise RuntimeError("dialog closed without a result")
     return result
+
+
+def _return_ok(entry: tk.Text, ok: tk.Button) -> str:
+    """Enter in the text box submits the answer (Option+Enter still inserts a newline)."""
+    ok.invoke()
+    return "break"
 
 
 def _center(dialog: tk.Toplevel, root: tk.Tk) -> None:

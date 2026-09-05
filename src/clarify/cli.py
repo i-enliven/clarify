@@ -15,6 +15,15 @@ def _payload(exit_code: int, response: str | None) -> str:
     return json.dumps({"exit_code": exit_code, "response": response}, ensure_ascii=False)
 
 
+def _write_payload(payload: str) -> None:
+    # UTF-8 regardless of locale: answers may contain any unicode.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8")  # type: ignore[attr-defined]
+    except (AttributeError, ValueError):
+        pass
+    print(payload)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="clarify",
@@ -27,12 +36,18 @@ def main(argv: list[str] | None = None) -> int:
 
     question = args.prompt
     if question is None and not sys.stdin.isatty():
-        question = sys.stdin.read().strip()
+        try:
+            question = sys.stdin.read().strip()
+        except (OSError, ValueError) as exc:
+            parser.error(f"failed to read question from stdin: {exc}")
     if not question:
         parser.error('no question given: pass -p "..." or pipe text on stdin')
 
     try:
         answer, cancelled = ask(question, title=args.title)
+    except KeyboardInterrupt:
+        print(_payload(1, None))
+        return 1
     except Exception as exc:  # noqa: BLE001  (backend failure: report on stderr, JSON on stdout)
         print(f"clarify: backend error: {exc}", file=sys.stderr)
         print(_payload(1, None))
@@ -42,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
         print(_payload(1, None))
         return 1
 
-    print(_payload(0, answer))
+    _write_payload(_payload(0, answer))
     return 0
 
 

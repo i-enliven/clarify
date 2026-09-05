@@ -2,6 +2,9 @@
 name = "clarify"
 version = "0.1.0"
 description = "Ask a question in a native dialog; get the answer as JSON on stdout."
+authors = [{ name = "Andre S." }]
+readme = "README.md"
+license = { text = "MIT" }
 requires-python = ">=3.12"
 dependencies = [
     "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",

@@ -6,6 +6,14 @@ authors = [{ name = "Andre S." }]
 readme = "README.md"
 license = { text = "MIT" }
 requires-python = ">=3.12"
+classifiers = [
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development",
+]
 dependencies = [
     "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
 ]

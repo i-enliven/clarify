@@ -16,7 +16,8 @@ clarify -p "Ship it?" -t "Deploy"
 ## Contract
 
 - **stdout**: exactly one compact JSON object: `{"exit_code": N, "response": string|null}`
-- **process exit code** mirrors `exit_code` (0 = answered, 1 = cancelled/error)
+- **process exit code** mirrors `exit_code` (0 = answered, 1 = cancelled/error);
+  CLI usage errors (e.g. no question given) exit 2
 - **stderr**: plain-text diagnostics only
 - Empty answer + OK is a valid answer (`"response": ""`, exit 0)
 - MCP-compatible: the JSON object is the tool-result payload
@@ -55,8 +56,12 @@ CLARIFY_TEST_ANSWER="hello" xvfb-run uv run clarify -p "test" | jq .
 ## CLI
 
 ```
-clarify [-p PROMPT] [-t TITLE]
+clarify [-p PROMPT] [-t TITLE] [-s SECONDS]
 
--p, --prompt   the question (required unless piped on stdin)
--t, --title    dialog title (default: Clarify)
+-p, --prompt    the question (required unless piped on stdin)
+-t, --title     dialog title (default: Clarify)
+-s, --timeout   seconds before the dialog auto-cancels (0 disables, default: 300)
 ```
+
+The default 5-minute timeout keeps agent/MCP callers from hanging on an
+unattended dialog; pass `-s 0` to wait forever.

@@ -13,7 +13,7 @@ _TEST_ANSWER_ENV = "CLARIFY_TEST_ANSWER"
 _MODAL_RUN_LOOP_MODE = "NSModalPanelRunLoopMode"
 
 
-def ask_macos(question: str, title: str | None = None) -> AskResult:
+def ask_macos(question: str, title: str | None = None, timeout: int = 0) -> AskResult:
     import AppKit  # PyObjC, macOS only
     import Foundation
 
@@ -57,11 +57,23 @@ def ask_macos(question: str, title: str | None = None) -> AskResult:
         )
         Foundation.NSRunLoop.currentRunLoop().addTimer_forMode_(timer, _MODAL_RUN_LOOP_MODE)
 
+    # Timeout: auto-cancel after `timeout` seconds (0 disables). Same modal-mode
+    # timer mechanics as the test hook; the selector targets the Cancel button.
+    timeout_timer = None
+    if timeout > 0:
+        cancel_button = alert.buttons()[1] if ok_button is None else alert.buttons()[-1]
+        timeout_timer = Foundation.NSTimer.timerWithTimeInterval_target_selector_userInfo_repeats_(
+            timeout, cancel_button, "performClick:", None, False
+        )
+        Foundation.NSRunLoop.currentRunLoop().addTimer_forMode_(timeout_timer, _MODAL_RUN_LOOP_MODE)
+
     app = AppKit.NSApplication.sharedApplication()
     response = app.runModalForWindow_(alert.window())
     alert.window().orderOut_(None)
     if timer is not None:
         timer.invalidate()
+    if timeout_timer is not None:
+        timeout_timer.invalidate()
 
     if response == AppKit.NSAlertFirstButtonReturn:
         return AskResult(str(text.string()), False)

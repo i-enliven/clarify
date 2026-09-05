@@ -13,14 +13,20 @@ __all__ = ["ask_linux"]
 _TEST_ANSWER_ENV = "CLARIFY_TEST_ANSWER"
 
 
-def ask_linux(question: str, title: str | None = None) -> AskResult:
+def ask_linux(question: str, title: str | None = None, timeout: int = 0) -> AskResult:
     root = tk.Tk()
     root.withdraw()  # no main window; only the dialog
+
+    result_holder: dict[str, AskResult | None] = {"result": None}
+
+    def _finish(widget: tk.Misc, answer: str | None, cancelled: bool) -> None:
+        result_holder["result"] = AskResult(answer, cancelled)
+        widget.quit()
 
     dialog = tk.Toplevel(root)
     dialog.title(title if title is not None else "Clarify")
     dialog.resizable(False, False)
-    dialog.protocol("WM_DELETE_WINDOW", lambda: _finish(dialog, result_holder, None, True))
+    dialog.protocol("WM_DELETE_WINDOW", lambda: _finish(dialog, None, True))
 
     tk.Label(dialog, text=question, wraplength=420, justify="left", pady=8).grid(
         row=0, column=0, padx=12, pady=(12, 4), sticky="w"
@@ -30,23 +36,17 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
     entry.grid(row=1, column=0, padx=12, pady=(4, 8), sticky="we")
     entry.focus_set()
 
-    result_holder: dict[str, AskResult | None] = {"result": None}
-
-    def _finish(widget: tk.Misc, holder: dict, answer: str | None, cancelled: bool) -> None:
-        holder["result"] = AskResult(answer, cancelled)
-        widget.quit()
-
     ok = tk.Button(
         dialog,
         text="OK",
         width=8,
-        command=lambda: _finish(dialog, result_holder, entry.get("1.0", "end-1c"), False),
+        command=lambda: _finish(dialog, entry.get("1.0", "end-1c"), False),
     )
     cancel = tk.Button(
         dialog,
         text="Cancel",
         width=8,
-        command=lambda: _finish(dialog, result_holder, None, True),
+        command=lambda: _finish(dialog, None, True),
     )
     ok.grid(row=2, column=0, padx=(12, 4), pady=(4, 12), sticky="e")
     cancel.grid(row=2, column=1, padx=(4, 12), pady=(4, 12), sticky="w")
@@ -62,7 +62,8 @@ def ask_linux(question: str, title: str | None = None) -> AskResult:
     except tk.TclError:
         pass
 
-    _maybe_autotest(dialog, entry, ok, _finish, result_holder)
+    _maybe_autotest(dialog, entry, ok, _finish)
+    _maybe_timeout(dialog, timeout, _finish)
 
     try:
         dialog.mainloop()
@@ -88,12 +89,18 @@ def _center(dialog: tk.Toplevel, root: tk.Tk) -> None:
     dialog.geometry(f"+{max(x, 0)}+{max(y, 0)}")
 
 
+def _maybe_timeout(dialog: tk.Toplevel, timeout: int, finish: Callable[..., None]) -> None:
+    """Auto-cancel the dialog after `timeout` seconds (0 disables)."""
+    if timeout <= 0:
+        return
+    dialog.after(timeout * 1000, lambda: finish(dialog, None, True))
+
+
 def _maybe_autotest(
     dialog: tk.Toplevel,
     entry: tk.Text,
     ok: tk.Button,
     finish: Callable[..., None],
-    holder: dict,
 ) -> None:
     """Test hook: CLARIFY_TEST_ANSWER auto-fills and clicks OK after a short delay.
 

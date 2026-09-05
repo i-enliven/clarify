@@ -10,6 +10,8 @@ from .backends import ask
 
 __all__ = ["main"]
 
+DEFAULT_TIMEOUT = 300
+
 
 def _payload(exit_code: int, response: str | None) -> str:
     return json.dumps({"exit_code": exit_code, "response": response}, ensure_ascii=False)
@@ -24,6 +26,15 @@ def _write_payload(payload: str) -> None:
     print(payload)
 
 
+def _package_version() -> str:
+    try:
+        from importlib.metadata import version
+
+        return version("clarify")
+    except Exception:  # noqa: BLE001  (version lookup is best-effort)
+        return "0.1.0"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         prog="clarify",
@@ -32,6 +43,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument("-p", "--prompt", help="the question to display")
     parser.add_argument("-t", "--title", help="dialog title (default: Clarify)")
+    parser.add_argument(
+        "-s",
+        "--timeout",
+        type=int,
+        default=DEFAULT_TIMEOUT,
+        help=f"seconds before the dialog auto-cancels (0 disables, default: {DEFAULT_TIMEOUT})",
+    )
+    parser.add_argument("--version", action="version", version=f"clarify {_package_version()}")
     args = parser.parse_args(argv)
 
     question = args.prompt
@@ -44,17 +63,17 @@ def main(argv: list[str] | None = None) -> int:
         parser.error('no question given: pass -p "..." or pipe text on stdin')
 
     try:
-        answer, cancelled = ask(question, title=args.title)
+        answer, cancelled = ask(question, title=args.title, timeout=args.timeout)
     except KeyboardInterrupt:
-        print(_payload(1, None))
+        _write_payload(_payload(1, None))
         return 1
     except Exception as exc:  # noqa: BLE001  (backend failure: report on stderr, JSON on stdout)
         print(f"clarify: backend error: {exc}", file=sys.stderr)
-        print(_payload(1, None))
+        _write_payload(_payload(1, None))
         return 1
 
     if cancelled:
-        print(_payload(1, None))
+        _write_payload(_payload(1, None))
         return 1
 
     _write_payload(_payload(0, answer))

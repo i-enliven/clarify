@@ -1,0 +1,24 @@
+[project]
+name = "clarify"
+version = "0.1.0"
+description = "Ask a question in a native dialog; get the answer as JSON on stdout."
+requires-python = ">=3.12"
+dependencies = [
+    "pyobjc-framework-Cocoa>=10.0; sys_platform == 'darwin'",
+]
+
+[project.scripts]
+clarify = "clarify.cli:main"
+
+[build-system]
+requires = ["uv_build>=0.5.7"]
+build-backend = "uv_build"
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[dependency-groups]
+dev = [
+    "ruff>=0.16.6",
+]
